@@ -123,7 +123,7 @@ if __name__ == "__main__":
     # Run the SAM_with_depth function
     pipeline.SAM_with_depth()
 
-'''''''''
+"""
     def get_train_loss_dict(self, step: int):
         """In addition to the base class, we also calculate SAM masks
         and their 3D scales at `start_grouping_step`."""
@@ -255,4 +255,4 @@ if __name__ == "__main__":
             ).to(scales.device)
 
         return quantile_transformer_func
-''''''''
+"""
