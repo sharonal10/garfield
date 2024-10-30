@@ -11,6 +11,8 @@ dependencies=[
     "torch",
     "scikit-learn",
     "torchtyping",
+    "matplotlib",
+    "tqdm",
     # "cuml",
 ]
 
