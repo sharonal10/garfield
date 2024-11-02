@@ -115,6 +115,7 @@ class GarfieldPipeline(VanillaPipeline):
         # and their 3D scales at `start_grouping_step`.
         if step == self.config.start_grouping_step:
             loaded = self.datamanager.load_sam_data()
+            assert not loaded, "delete existing SAM data to compute new SAM data"
             if not loaded:
                 self.populate_grouping_info()
             else:
@@ -147,61 +148,114 @@ class GarfieldPipeline(VanillaPipeline):
         return model_outputs, loss_dict, metrics_dict
 
     def populate_grouping_info(self):
-        """
-        Calculate groups from SAM and their 3D scales, and save them in the datamanager.
-        This information is required to supervise the grouping field.
-        """
-        # Note that pipeline is in train mode here, via the base trainer.
+        # """
+        # Calculate groups from SAM and their 3D scales, and save them in the datamanager.
+        # This information is required to supervise the grouping field.
+        # """
+        # # Note that pipeline is in train mode here, via the base trainer.
+        # self.model.eval()
+
+        # # Calculate multi-scale masks, and their 3D scales
+        # scales_3d_list, pixel_level_keys_list, group_cdf_list = [], [], []
+        # train_cameras = self.datamanager.train_dataset.cameras
+        # for i in tqdm.trange(len(train_cameras), desc="Calculating 3D masks"):
+        #     camera_ray_bundle = train_cameras.generate_rays(camera_indices=i).to(
+        #         self.device
+        #     )
+        #     with torch.no_grad():
+        #         outputs = self.model.get_outputs_for_camera_ray_bundle(
+        #             camera_ray_bundle
+        #         )
+
+        #     # Get RGB (for SAM mask generation), depth and 3D point locations (for 3D scale calculation)
+        #     rgb = self.datamanager.train_dataset[i]["image"]
+        #     depth = outputs["depth"]
+        #     points = camera_ray_bundle.origins + camera_ray_bundle.directions * depth
+        #     # Scales are capped to `max_grouping_scale` to filter noisy / outlier masks.
+        #     (
+        #         pixel_level_keys,
+        #         scale_3d,
+        #         group_cdf,
+        #     ) = self.datamanager._calculate_3d_groups(
+        #         rgb, depth, points, max_scale=self.config.max_grouping_scale
+        #     )
+
+        #     pixel_level_keys_list.append(pixel_level_keys)
+        #     scales_3d_list.append(scale_3d)
+        #     group_cdf_list.append(group_cdf)
+
+        # # Save grouping data, and set it in the datamanager for current training.
+        # # This will be cached, so we don't need to calculate it again.
+        # self.datamanager.save_sam_data(
+        #     pixel_level_keys_list, scales_3d_list, group_cdf_list
+        # )
+        # self.datamanager.pixel_level_keys = torch.nested.nested_tensor(
+        #     pixel_level_keys_list
+        # )
+        # self.datamanager.scale_3d = torch.nested.nested_tensor(scales_3d_list)
+        # self.datamanager.group_cdf = torch.nested.nested_tensor(group_cdf_list)
+
+        # # Initialize grouping statistics. This will be automatically loaded from a checkpoint next time.
+        # self.grouping_stats = torch.nn.Parameter(torch.cat(scales_3d_list))
+        # self.model.grouping_field.quantile_transformer = self._get_quantile_func(
+        #     torch.cat(scales_3d_list)
+        # )
+
+        # # Turn model back to train mode
+        # self.model.train()
+
+
+        # Step 1: Create a new folder for visualizations if it doesn't exist
+        save_folder = "SAM_visualisations"
+        os.makedirs(save_folder, exist_ok=True)  # Create folder if not already present
         self.model.eval()
 
         # Calculate multi-scale masks, and their 3D scales
-        scales_3d_list, pixel_level_keys_list, group_cdf_list = [], [], []
         train_cameras = self.datamanager.train_dataset.cameras
-        for i in tqdm.trange(len(train_cameras), desc="Calculating 3D masks"):
-            camera_ray_bundle = train_cameras.generate_rays(camera_indices=i).to(
-                self.device
-            )
+
+        # Step 2: Iterate over all views (cameras) and generate visualizations
+        for i in tqdm.trange(len(train_cameras), desc="Saving All SAM Visualizations"):
+            # Generate rays for the current camera view
+            camera_ray_bundle = train_cameras.generate_rays(camera_indices=i).to(self.device)
+
             with torch.no_grad():
-                outputs = self.model.get_outputs_for_camera_ray_bundle(
-                    camera_ray_bundle
-                )
+                # Get model outputs for the current camera ray bundle
+                outputs = self.model.get_outputs_for_camera_ray_bundle(camera_ray_bundle)
 
-            # Get RGB (for SAM mask generation), depth and 3D point locations (for 3D scale calculation)
-            rgb = self.datamanager.train_dataset[i]["image"]
-            depth = outputs["depth"]
+            # Access RGB image and depth map for the current view
+            rgb = self.datamanager.train_dataset[i]["image"]  # 2D RGB view
+            depth = outputs["depth"]  # Corresponding depth map
+
+            # Calculate 3D points using the depth map and ray bundle
             points = camera_ray_bundle.origins + camera_ray_bundle.directions * depth
-            # Scales are capped to `max_grouping_scale` to filter noisy / outlier masks.
-            (
-                pixel_level_keys,
-                scale_3d,
-                group_cdf,
-            ) = self.datamanager._calculate_3d_groups(
-                rgb, depth, points, max_scale=self.config.max_grouping_scale
-            )
 
-            pixel_level_keys_list.append(pixel_level_keys)
-            scales_3d_list.append(scale_3d)
-            group_cdf_list.append(group_cdf)
+            # Create subfolders for each camera view for better organization
+            view_folder = os.path.join(save_folder, f"view_{i}")
+            os.makedirs(view_folder, exist_ok=True)  # Create subfolder for the current view
 
-        # Save grouping data, and set it in the datamanager for current training.
-        # This will be cached, so we don't need to calculate it again.
-        self.datamanager.save_sam_data(
-            pixel_level_keys_list, scales_3d_list, group_cdf_list
-        )
-        self.datamanager.pixel_level_keys = torch.nested.nested_tensor(
-            pixel_level_keys_list
-        )
-        self.datamanager.scale_3d = torch.nested.nested_tensor(scales_3d_list)
-        self.datamanager.group_cdf = torch.nested.nested_tensor(group_cdf_list)
+            # Save the RGB Image and Depth Map side-by-side as a single figure
+            fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
-        # Initialize grouping statistics. This will be automatically loaded from a checkpoint next time.
-        self.grouping_stats = torch.nn.Parameter(torch.cat(scales_3d_list))
-        self.model.grouping_field.quantile_transformer = self._get_quantile_func(
-            torch.cat(scales_3d_list)
-        )
+            # Plot the RGB image
+            axes[0].imshow(rgb)
+            axes[0].set_title("RGB Image")
+            axes[0].axis("off")  # Hide axes for cleaner display
 
-        # Turn model back to train mode
-        self.model.train()
+            # Plot the Depth map
+            axes[1].imshow(depth.cpu().numpy(), cmap='viridis')  # Convert tensor to numpy
+            axes[1].set_title("Depth Map")
+            axes[1].axis("off")
+
+            # Save the figure to the corresponding view folder
+            save_path = os.path.join(view_folder, f"sam_visualisation_view_{i}.png")
+            fig.savefig(save_path, bbox_inches='tight')  # Save without extra whitespace
+
+            # Close the figure to free memory
+            plt.close(fig)
+
+            print(f"Saved visualization for view {i} at: {save_path}")
+
+            print("All visualizations saved successfully.")
 
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
         """
