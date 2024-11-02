@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import os
 import tqdm
+import sys
 
 print("GarfieldPipeline initialized!")
 
@@ -58,75 +59,60 @@ class GarfieldPipeline(VanillaPipeline):
             grad_scaler,
         )
 
-def SAM_with_depth(self):
-    # Step 1: Create a new folder for visualizations if it doesn't exist
-    save_folder = "SAM_visualisations"
-    os.makedirs(save_folder, exist_ok=True)  # Create folder if not already present
+    def SAM_with_depth(self, train_cameras):
+        # Step 1: Create a new folder for visualizations if it doesn't exist
+        save_folder = "SAM_visualisations"
+        os.makedirs(save_folder, exist_ok=True)  # Create folder if not already present
 
-    # Step 2: Iterate over all views (cameras) and generate visualizations
-    for i in tqdm.trange(len(train_cameras), desc="Saving All SAM Visualizations"):
-        # Generate rays for the current camera view
-        camera_ray_bundle = train_cameras.generate_rays(camera_indices=i).to(self.device)
+        # Step 2: Iterate over all views (cameras) and generate visualizations
+        for i in tqdm.trange(len(train_cameras), desc="Saving All SAM Visualizations"):
+            # Generate rays for the current camera view
+            camera_ray_bundle = train_cameras.generate_rays(camera_indices=i).to(self.device)
 
-        with torch.no_grad():
-            # Get model outputs for the current camera ray bundle
-            outputs = self.model.get_outputs_for_camera_ray_bundle(camera_ray_bundle)
+            with torch.no_grad():
+                # Get model outputs for the current camera ray bundle
+                outputs = self.model.get_outputs_for_camera_ray_bundle(camera_ray_bundle)
 
-        # Access RGB image and depth map for the current view
-        rgb = self.datamanager.train_dataset[i]["image"]  # 2D RGB view
-        depth = outputs["depth"]  # Corresponding depth map
+            # Access RGB image and depth map for the current view
+            rgb = self.datamanager.train_dataset[i]["image"]  # 2D RGB view
+            depth = outputs["depth"]  # Corresponding depth map
 
-        # Calculate 3D points using the depth map and ray bundle
-        points = camera_ray_bundle.origins + camera_ray_bundle.directions * depth
+            # Calculate 3D points using the depth map and ray bundle
+            points = camera_ray_bundle.origins + camera_ray_bundle.directions * depth
 
-        # Create subfolders for each camera view for better organization
-        view_folder = os.path.join(save_folder, f"view_{i}")
-        os.makedirs(view_folder, exist_ok=True)  # Create subfolder for the current view
+            # Create subfolders for each camera view for better organization
+            view_folder = os.path.join(save_folder, f"view_{i}")
+            os.makedirs(view_folder, exist_ok=True)  # Create subfolder for the current view
 
-        # Save the RGB Image and Depth Map side-by-side as a single figure
-        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+            # Save the RGB Image and Depth Map side-by-side as a single figure
+            fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
-        # Plot the RGB image
-        axes[0].imshow(rgb)
-        axes[0].set_title("RGB Image")
-        axes[0].axis("off")  # Hide axes for cleaner display
+            # Plot the RGB image
+            axes[0].imshow(rgb)
+            axes[0].set_title("RGB Image")
+            axes[0].axis("off")  # Hide axes for cleaner display
 
-        # Plot the Depth map
-        axes[1].imshow(depth.cpu().numpy(), cmap='viridis')  # Convert tensor to numpy
-        axes[1].set_title("Depth Map")
-        axes[1].axis("off")
+            # Plot the Depth map
+            axes[1].imshow(depth.cpu().numpy(), cmap='viridis')  # Convert tensor to numpy
+            axes[1].set_title("Depth Map")
+            axes[1].axis("off")
 
-        # Save the figure to the corresponding view folder
-        save_path = os.path.join(view_folder, f"sam_visualisation_view_{i}.png")
-        fig.savefig(save_path, bbox_inches='tight')  # Save without extra whitespace
+            # Save the figure to the corresponding view folder
+            save_path = os.path.join(view_folder, f"sam_visualisation_view_{i}.png")
+            fig.savefig(save_path, bbox_inches='tight')  # Save without extra whitespace
 
-        # Close the figure to free memory
-        plt.close(fig)
+            # Close the figure to free memory
+            plt.close(fig)
 
-        print(f"Saved visualization for view {i} at: {save_path}")
+            print(f"Saved visualization for view {i} at: {save_path}")
 
-        print("All visualizations saved successfully.")
+            print("All visualizations saved successfully.")
+        sys.exit() # just exit when done
 
-# Example instantiation of GarfieldPipeline
 
-if __name__ == "__main__":
-    # Create a config object (modify parameters as needed)
-    config = GarfieldPipelineConfig()
-    
-    # Create an instance of the pipeline
-    pipeline = GarfieldPipeline(
-        config=config,
-        device="cuda",  # Or "cpu" if you don't have a GPU
-        test_mode="inference"
-    )
-
-    # Run the SAM_with_depth function
-    pipeline.SAM_with_depth()
-
-'''
     def get_train_loss_dict(self, step: int):
-        In addition to the base class, we also calculate SAM masks
-        and their 3D scales at `start_grouping_step`.
+        # In addition to the base class, we also calculate SAM masks
+        # and their 3D scales at `start_grouping_step`.
         if step == self.config.start_grouping_step:
             loaded = self.datamanager.load_sam_data()
             if not loaded:
@@ -255,4 +241,3 @@ if __name__ == "__main__":
             ).to(scales.device)
 
         return quantile_transformer_func
-'''
