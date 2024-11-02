@@ -202,9 +202,9 @@ class GarfieldPipeline(VanillaPipeline):
             # Close the figure to free memory
             plt.close(fig)
 
-            print(f"Saved visualization for view {i} at: {save_path}")
+            # print(f"Saved visualization for view {i} at: {save_path}")
 
-            print("All visualizations saved successfully.")
+            # print("All visualizations saved successfully.")
 
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
         """
