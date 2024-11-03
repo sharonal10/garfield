@@ -125,7 +125,6 @@ class GarfieldClickScene(nn.Module):
 
     def get_outputs(self, outputs: dict):
         """Visualize affinity between the selected 3D point and the points visibl in current rendered view."""
-        print('*********** garfield_interaction')
         if self.selected_location is None:
             return None
 

@@ -17,6 +17,7 @@ import torch.nn.functional as F
 import os
 import tqdm
 import sys
+import numpy as np
 
 print("GarfieldPipeline initialized!")
 
@@ -66,6 +67,7 @@ class GarfieldPipeline(VanillaPipeline):
         if step == self.config.start_grouping_step:
             loaded = self.datamanager.load_sam_data()
             # assert not loaded, "delete existing SAM data to compute new SAM data"
+            assert loaded
             if not loaded:
                 self.populate_grouping_info()
             else:
@@ -175,8 +177,19 @@ class GarfieldPipeline(VanillaPipeline):
 
             # Access RGB image and depth map for the current view
             rgb = self.datamanager.train_dataset[i]["image"]  # 2D RGB view
-            sam = outputs["instance"]
+            smallest_mask_ids, _ = self.datamanager.pixel_level_keys[i][..., -1]
             depth = outputs["depth"]  # Corresponding depth map
+
+            unique_ids = torch.unique(smallest_mask_ids)
+            num_ids = unique_ids.size(0)
+
+            cmap = plt.cm.get_cmap("tab20", num_ids)  # Use a colormap with up to 20 colors
+            color_map = {id.item(): cmap(i) for i, id in enumerate(unique_ids)}
+
+            colored_image = np.zeros((*smallest_mask_ids.shape, 3))
+            for id in unique_ids:
+                mask = (smallest_mask_ids == id)
+                colored_image[mask] = color_map[id.item()][:3]
 
             # Calculate 3D points using the depth map and ray bundle
             points = camera_ray_bundle.origins + camera_ray_bundle.directions * depth
@@ -189,7 +202,7 @@ class GarfieldPipeline(VanillaPipeline):
             axes[0].set_title("RGB Image")
             axes[0].axis("off")  # Hide axes for cleaner display
 
-            axes[1].imshow(apply_pca_colormap(sam).cpu().numpy())  # Convert tensor to numpy
+            axes[1].imshow(colored_image)  # Convert tensor to numpy
             axes[1].set_title("SAM Masks")
             axes[1].axis("off")
 
@@ -208,6 +221,7 @@ class GarfieldPipeline(VanillaPipeline):
             # print(f"Saved visualization for view {i} at: {save_path}")
 
             # print("All visualizations saved successfully.")
+        sys.exit()
 
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
         """
