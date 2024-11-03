@@ -135,8 +135,7 @@ class GarfieldModel(NerfactoModel):
         hash_rendered = self.renderer_feat(
             embeds=hash, weights=grouping_weights.detach().half()
         )
-        if self.training:
-            outputs["instance_hash"] = hash_rendered  # normalized!
+        outputs["instance_hash"] = hash_rendered  # normalized!
         outputs["instance"] = self.grouping_field.get_mlp(hash_rendered, instance_scales).float()
 
         # If a click point is available, calculate the affinity between the click point and the scene.
