@@ -155,8 +155,8 @@ class GarfieldPipeline(VanillaPipeline):
 
 
         # Step 1: Create a new folder for visualizations if it doesn't exist
-        save_folder = "SAM_visualisations"
-        os.makedirs(save_folder, exist_ok=True)  # Create folder if not already present
+        view_folder = "SAM_visualisations"
+        os.makedirs(view_folder, exist_ok=True)  # Create folder if not already present
         self.model.eval()
 
         # Calculate multi-scale masks, and their 3D scales
@@ -185,10 +185,6 @@ class GarfieldPipeline(VanillaPipeline):
 
             # Calculate 3D points using the depth map and ray bundle
             points = camera_ray_bundle.origins + camera_ray_bundle.directions * depth
-
-            # Create subfolders for each camera view for better organization
-            view_folder = os.path.join(save_folder, f"view_{i}")
-            os.makedirs(view_folder, exist_ok=True)  # Create subfolder for the current view
 
             # Save the RGB Image and Depth Map side-by-side as a single figure
             fig, axes = plt.subplots(1, 3, figsize=(15, 5))
