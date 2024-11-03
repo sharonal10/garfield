@@ -177,7 +177,7 @@ class GarfieldPipeline(VanillaPipeline):
 
             # Access RGB image and depth map for the current view
             rgb = self.datamanager.train_dataset[i]["image"]  # 2D RGB view
-            smallest_mask_ids, _ = self.datamanager.pixel_level_keys[i][..., -1]
+            smallest_mask_ids = self.datamanager.pixel_level_keys[i][..., -1]
             depth = outputs["depth"]  # Corresponding depth map
 
             unique_ids = torch.unique(smallest_mask_ids)
