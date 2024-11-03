@@ -64,7 +64,7 @@ class GarfieldPipeline(VanillaPipeline):
         # and their 3D scales at `start_grouping_step`.
         if step == self.config.start_grouping_step:
             loaded = self.datamanager.load_sam_data()
-            assert not loaded, "delete existing SAM data to compute new SAM data"
+            # assert not loaded, "delete existing SAM data to compute new SAM data"
             if not loaded:
                 self.populate_grouping_info()
             else:
@@ -75,6 +75,7 @@ class GarfieldPipeline(VanillaPipeline):
                     self._get_quantile_func(scale_stats)
                 )
             # Set the number of rays per image to the number of rays per image for grouping
+            self.populate_grouping_info()
             pixel_sampler = self.datamanager.train_pixel_sampler
             pixel_sampler.num_rays_per_image = pixel_sampler.config.num_rays_per_image
 
