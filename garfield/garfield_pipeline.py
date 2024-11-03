@@ -4,6 +4,7 @@ from typing import Literal, Type, Mapping, Any
 
 import torch
 from nerfstudio.pipelines.base_pipeline import VanillaPipeline, VanillaPipelineConfig
+from nerfstudio.utils.colormaps import apply_pca_colormap
 from torch.cuda.amp.grad_scaler import GradScaler
 
 from sklearn.preprocessing import QuantileTransformer
@@ -163,11 +164,6 @@ class GarfieldPipeline(VanillaPipeline):
         # Calculate multi-scale masks, and their 3D scales
         train_cameras = self.datamanager.train_dataset.cameras
 
-        # TODO: remove
-        key = "instance"
-        import pdb
-        pdb_flag = False
-
         # Step 2: Iterate over all views (cameras) and generate visualizations
         for i in tqdm.trange(len(train_cameras), desc="Saving All SAM Visualizations"):
             # Generate rays for the current camera view
@@ -179,9 +175,7 @@ class GarfieldPipeline(VanillaPipeline):
 
             # Access RGB image and depth map for the current view
             rgb = self.datamanager.train_dataset[i]["image"]  # 2D RGB view
-            if pdb_flag == False:
-                pdb.set_trace()
-            sam = outputs[key]
+            sam = outputs["instance"]
             depth = outputs["depth"]  # Corresponding depth map
 
             # Calculate 3D points using the depth map and ray bundle
@@ -195,7 +189,7 @@ class GarfieldPipeline(VanillaPipeline):
             axes[0].set_title("RGB Image")
             axes[0].axis("off")  # Hide axes for cleaner display
 
-            axes[1].imshow(sam.cpu().numpy())  # Convert tensor to numpy
+            axes[1].imshow(apply_pca_colormap(sam).cpu().numpy())  # Convert tensor to numpy
             axes[1].set_title("SAM Masks")
             axes[1].axis("off")
 
