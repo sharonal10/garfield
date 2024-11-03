@@ -162,6 +162,11 @@ class GarfieldPipeline(VanillaPipeline):
         # Calculate multi-scale masks, and their 3D scales
         train_cameras = self.datamanager.train_dataset.cameras
 
+        # TODO: remove
+        key = "instance"
+        import pdb
+        pdb_flag = False
+
         # Step 2: Iterate over all views (cameras) and generate visualizations
         for i in tqdm.trange(len(train_cameras), desc="Saving All SAM Visualizations"):
             # Generate rays for the current camera view
@@ -173,6 +178,9 @@ class GarfieldPipeline(VanillaPipeline):
 
             # Access RGB image and depth map for the current view
             rgb = self.datamanager.train_dataset[i]["image"]  # 2D RGB view
+            if pdb_flag == False:
+                pdb.set_trace()
+            sam = outputs[key]
             depth = outputs["depth"]  # Corresponding depth map
 
             # Calculate 3D points using the depth map and ray bundle
@@ -183,17 +191,21 @@ class GarfieldPipeline(VanillaPipeline):
             os.makedirs(view_folder, exist_ok=True)  # Create subfolder for the current view
 
             # Save the RGB Image and Depth Map side-by-side as a single figure
-            fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
             # Plot the RGB image
             axes[0].imshow(rgb)
             axes[0].set_title("RGB Image")
             axes[0].axis("off")  # Hide axes for cleaner display
 
-            # Plot the Depth map
-            axes[1].imshow(depth.cpu().numpy(), cmap='viridis')  # Convert tensor to numpy
-            axes[1].set_title("Depth Map")
+            axes[1].imshow(sam.cpu().numpy())  # Convert tensor to numpy
+            axes[1].set_title("SAM Masks")
             axes[1].axis("off")
+
+            # Plot the Depth map
+            axes[2].imshow(depth.cpu().numpy(), cmap='viridis')  # Convert tensor to numpy
+            axes[2].set_title("Depth Map")
+            axes[2].axis("off")
 
             # Save the figure to the corresponding view folder
             save_path = os.path.join(view_folder, f"sam_visualisation_view_{i}.png")
