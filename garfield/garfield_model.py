@@ -77,6 +77,7 @@ class GarfieldModel(NerfactoModel):
             )
 
     def get_outputs(self, ray_bundle: RayBundle) -> Dict[str, TensorType]:
+        print('*********** garfield_model')
         outputs = super().get_outputs(ray_bundle)
 
         if self.grouping_field.quantile_transformer is None:
