@@ -532,6 +532,7 @@ class GarfieldGaussianPipeline(VanillaPipeline):
 
             output_dir = f"outputs/{self.datamanager.config.dataparser.data.name}/clusters"
             filename = Path(output_dir) / f"{cluster_id}.ply"
+            Path(output_dir).mkdir(parents=True, exist_ok=True)
             print(filename)
 
             # Copied from exporter.py
