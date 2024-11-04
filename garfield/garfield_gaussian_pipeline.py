@@ -114,6 +114,7 @@ class GarfieldGaussianPipeline(VanillaPipeline):
         self.cluster_scene = ViewerButton(name="Cluster Scene", cb_hook=self._cluster_scene, disabled=False, visible=False)
         self.cluster_scene_scale = ViewerSlider(name="Cluster Scale", min_value=0.0, max_value=2.0, step=0.01, default_value=0.0, disabled=False, visible=False)
         self.cluster_scene_shuffle_colors = ViewerButton(name="Reshuffle Cluster Colors", cb_hook=self._reshuffle_cluster_colors, disabled=False, visible=False)
+        self.test_button = ViewerButton(name="Test Button", cb_hook=self._cluster_scene, disabled=False, visible=True)
         self.cluster_labels = None
 
         self.reset_state = ViewerButton(name="Reset State", cb_hook=self._reset_state, disabled=True)
@@ -473,6 +474,7 @@ class GarfieldGaussianPipeline(VanillaPipeline):
         positions_downsampled = np.array(pc.points)
 
         print(f"Clustering {group_feats_downsampled.shape[0]} gaussians... ", end="", flush=True)
+        print("maybe i can save them here")
 
         # Run cuml-based HDBSCAN
         clusterer = HDBSCAN(
@@ -544,6 +546,7 @@ class GarfieldGaussianPipeline(VanillaPipeline):
         """Export the visible gaussians to a .ply file"""
         # location to save
         output_dir = f"outputs/{self.datamanager.config.dataparser.data.name}"
+        print(output_dir)
         filename = Path(output_dir) / f"gaussians.ply"
 
         # Copied from exporter.py
