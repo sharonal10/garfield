@@ -540,7 +540,7 @@ class GarfieldGaussianPipeline(VanillaPipeline):
             model=self.model
 
             with torch.no_grad():
-                cluster_positions = positions[cluster_mask].cpu().numpy()
+                cluster_positions = positions[cluster_mask]
                 count = cluster_positions.shape[0]
                 n = count
                 map_to_tensors["x"] = cluster_positions[:, 0]
