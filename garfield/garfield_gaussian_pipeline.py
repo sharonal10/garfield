@@ -545,14 +545,14 @@ class GarfieldGaussianPipeline(VanillaPipeline):
             z_min, z_max = -1.5, 0.5
 
             with torch.no_grad():
-                #TODO: I was going to exclude all points outside of a side length 2 box centered on 0, 0, -0.5
+                #TODO: run this function at the end of garfield training automatically
                 cluster_positions = positions[cluster_mask]
-                cube_mask = (
-                    (cluster_positions[:, 0] >= x_min) & (cluster_positions[:, 0] <= x_max) &
-                    (cluster_positions[:, 1] >= y_min) & (cluster_positions[:, 1] <= y_max) &
-                    (cluster_positions[:, 2] >= z_min) & (cluster_positions[:, 2] <= z_max)
-                )
-                cluster_positions = cluster_positions[cube_mask]
+                # cube_mask = (
+                #     (cluster_positions[:, 0] >= x_min) & (cluster_positions[:, 0] <= x_max) &
+                #     (cluster_positions[:, 1] >= y_min) & (cluster_positions[:, 1] <= y_max) &
+                #     (cluster_positions[:, 2] >= z_min) & (cluster_positions[:, 2] <= z_max)
+                # )
+                # cluster_positions = cluster_positions[cube_mask]
                 count = cluster_positions.shape[0]
                 n = count
                 if count == 0:
