@@ -524,6 +524,7 @@ class GarfieldGaussianPipeline(VanillaPipeline):
         for cluster_id in np.unique(labels):
             # Skip noise points if present (assuming -1 is noise)
             if cluster_id == -1:
+                print('skipping as -1')
                 continue
             
             # Create a mask for the current cluster
