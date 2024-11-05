@@ -540,10 +540,24 @@ class GarfieldGaussianPipeline(VanillaPipeline):
             map_to_tensors = OrderedDict()
             model=self.model
 
+            x_min, x_max = -1, 1
+            y_min, y_max = -1, 1
+            z_min, z_max = -1.5, 0.5
+
             with torch.no_grad():
+                #TODO: I was going to exclude all points outside of a side length 2 box centered on 0, 0, -0.5
                 cluster_positions = positions[cluster_mask]
+                cube_mask = (
+                    (cluster_positions[:, 0] >= x_min) & (cluster_positions[:, 0] <= x_max) &
+                    (cluster_positions[:, 1] >= y_min) & (cluster_positions[:, 1] <= y_max) &
+                    (cluster_positions[:, 2] >= z_min) & (cluster_positions[:, 2] <= z_max)
+                )
+                cluster_positions = cluster_positions[cube_mask]
                 count = cluster_positions.shape[0]
                 n = count
+                if count == 0:
+                    print(f'skipping {cluster_id}')
+                    continue
                 map_to_tensors["x"] = cluster_positions[:, 0]
                 map_to_tensors["y"] = cluster_positions[:, 1]
                 map_to_tensors["z"] = cluster_positions[:, 2]
@@ -552,26 +566,26 @@ class GarfieldGaussianPipeline(VanillaPipeline):
                 map_to_tensors["nz"] = np.zeros(n, dtype=np.float32)
 
                 if model.config.sh_degree > 0:
-                    shs_0 = model.shs_0[cluster_mask].contiguous().cpu().numpy()
+                    shs_0 = model.shs_0[cluster_mask][cube_mask].contiguous().cpu().numpy()
                     for i in range(shs_0.shape[1]):
                         map_to_tensors[f"f_dc_{i}"] = shs_0[:, i, None]
 
                     # transpose(1, 2) was needed to match the sh order in Inria version
-                    shs_rest = model.shs_rest[cluster_mask].transpose(1, 2).contiguous().cpu().numpy()
+                    shs_rest = model.shs_rest[cluster_mask][cube_mask].transpose(1, 2).contiguous().cpu().numpy()
                     shs_rest = shs_rest.reshape((n, -1))
                     for i in range(shs_rest.shape[-1]):
                         map_to_tensors[f"f_rest_{i}"] = shs_rest[:, i, None]
                 else:
-                    colors = torch.clamp(model.colors[cluster_mask].clone(), 0.0, 1.0).data.cpu().numpy()
+                    colors = torch.clamp(model.colors[cluster_mask][cube_mask].clone(), 0.0, 1.0).data.cpu().numpy()
                     map_to_tensors["colors"] = (colors * 255).astype(np.uint8)
 
-                map_to_tensors["opacity"] = model.opacities[cluster_mask].data.cpu().numpy()
+                map_to_tensors["opacity"] = model.opacities[cluster_mask][cube_mask].data.cpu().numpy()
 
-                scales = model.scales[cluster_mask].data.cpu().numpy()
+                scales = model.scales[cluster_mask][cube_mask].data.cpu().numpy()
                 for i in range(3):
                     map_to_tensors[f"scale_{i}"] = scales[:, i, None]
 
-                quats = model.quats[cluster_mask].data.cpu().numpy()
+                quats = model.quats[cluster_mask][cube_mask].data.cpu().numpy()
                 for i in range(4):
                     map_to_tensors[f"rot_{i}"] = quats[:, i, None]
 
