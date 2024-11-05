@@ -476,19 +476,6 @@ class GarfieldGaussianPipeline(VanillaPipeline):
         print(f"Clustering {group_feats_downsampled.shape[0]} gaussians... ", end="", flush=True)
         print("maybe i can save them here")
 
-        
-        x_min, x_max = -1, 1
-        y_min, y_max = -1, 1
-        z_min, z_max = -1.5, 0.5
-
-        cube_mask = (
-            (cluster_positions[:, 0] >= x_min) & (cluster_positions[:, 0] <= x_max) &
-            (cluster_positions[:, 1] >= y_min) & (cluster_positions[:, 1] <= y_max) &
-            (cluster_positions[:, 2] >= z_min) & (cluster_positions[:, 2] <= z_max)
-        )
-
-        print('cube mask sum:', cube_mask.sum())
-
         # Run cuml-based HDBSCAN
         clusterer = HDBSCAN(
             cluster_selection_epsilon=0.1,
